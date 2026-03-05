@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hábitos Saludables - Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:#F5F8FC;color:#1A2B42}
+    .topbar{background:linear-gradient(135deg,#1E5F9E,#4A90D9);color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:fixed;top:0;left:0;right:0;z-index:100;height:64px;box-shadow:0 4px 20px rgba(30,95,158,.2)}
+    .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:bold}
+    .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1E5F9E,#4A90D9)}
+    .login-box{background:#fff;border-radius:24px;padding:40px;width:380px;box-shadow:0 16px 48px rgba(0,0,0,.15)}
+    .login-title{font-size:22px;font-weight:bold;color:#1E5F9E;margin-bottom:6px}
+    .login-sub{color:#5A7A9A;font-size:13px;margin-bottom:24px}
+    input{width:100%;padding:12px 14px;border:2px solid #D1E0EE;border-radius:10px;font-size:14px;margin-bottom:14px;transition:border .2s;outline:none}
+    input:focus{border-color:#1E5F9E}
+    .btn{width:100%;padding:13px;background:#1E5F9E;color:#fff;border:none;border-radius:11px;font-size:15px;font-weight:bold;cursor:pointer;transition:background .2s}
+    .btn:hover{background:#154680}
+    .btn-sm{width:auto;padding:7px 14px;font-size:12px;border-radius:8px}
+    .btn-danger{background:#E74C3C}.btn-danger:hover{background:#C0392B}
+    .btn-success{background:#2ECC71}.btn-success:hover{background:#27AE60}
+    .sidebar{position:fixed;left:0;top:64px;bottom:0;width:220px;background:#fff;box-shadow:2px 0 15px rgba(0,0,0,.07);padding-top:12px;z-index:50}
+    .nav-item{padding:12px 20px;cursor:pointer;display:flex;align-items:center;gap:10px;font-size:14px;color:#5A7A9A;border-left:3px solid transparent;transition:all .15s}
+    .nav-item:hover,.nav-item.active{background:#E8F1FA;color:#1E5F9E;border-left-color:#1E5F9E}
+    .main{margin-left:220px;padding:84px 24px 32px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+    .stat-card{background:#fff;border-radius:16px;padding:18px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    .stat-icon{font-size:28px;margin-bottom:6px}
+    .stat-val{font-size:26px;font-weight:bold;color:#1E5F9E}
+    .stat-lbl{font-size:12px;color:#5A7A9A;margin-top:3px}
+    .card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:18px}
+    .card-title{font-size:16px;font-weight:bold;margin-bottom:16px}
+    table{width:100%;border-collapse:collapse}
+    th{text-align:left;padding:10px 14px;background:#F5F8FC;color:#5A7A9A;font-size:12px;font-weight:600}
+    td{padding:10px 14px;border-bottom:1px solid #E8F0F8;font-size:13px}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#F9FBFE}
+    .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+    .b-male{background:#EBF5FF;color:#1E5F9E}.b-female{background:#FFF0F9;color:#C44480}
+    .b-prem{background:#FFFDE7;color:#D4AC0D}.b-free{background:#F0F0F0;color:#888}
+    .b-block{background:#FFE8E6;color:#E74C3C}.b-active{background:#DCFCE7;color:#16A34A}
+    .page{display:none}.page.active{display:block}
+    .search-row{display:flex;gap:10px;margin-bottom:14px}
+    .search-row input{margin:0;flex:1}
+    select{padding:12px 14px;border:2px solid #D1E0EE;border-radius:10px;font-size:14px;background:#fff;outline:none;color:#1A2B42}
+    #toast{position:fixed;top:76px;right:20px;padding:12px 18px;border-radius:10px;color:#fff;font-weight:600;z-index:200;display:none;font-size:13px}
+    .dash{display:none}.dash.show{display:block}
+    .section-wrap{display:none}
+    .section-wrap.active{display:block}
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">🌱 <span>Hábitos Saludables</span></div>
+  <div style="font-size:13px;background:rgba(255,255,255,.2);padding:6px 14px;border-radius:20px">🔐 Admin</div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-box">
+    <div style="text-align:center;font-size:52px;margin-bottom:16px">🌱</div>
+    <div class="login-title">Panel Administrativo</div>
+    <div class="login-sub">Acceso exclusivo para el administrador autorizado</div>
+    <input type="email" id="adEmail" placeholder="Correo del administrador" />
+    <input type="password" id="adPass" placeholder="Contraseña" />
+    <button class="btn" onclick="doLogin()">Iniciar Sesión</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash" id="dash">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-item active" onclick="showPage('overview',this)">📊 Resumen</div>
+    <div class="nav-item" onclick="showPage('users',this)">👥 Usuarios</div>
+    <div class="nav-item" onclick="showPage('stats',this)">📈 Estadísticas</div>
+    <div class="nav-item" onclick="showPage('blocked',this)">🚫 Bloqueados</div>
+    <div class="nav-item" style="position:absolute;bottom:20px;width:100%" onclick="doLogout()">🚪 Cerrar Sesión</div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- RESUMEN -->
+    <div class="page active" id="overviewPage">
+      <h2 style="margin-bottom:18px">📊 Resumen General</h2>
+      <div class="grid4">
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="sUsers">-</div><div class="stat-lbl">Usuarios</div></div>
+        <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-val" id="sPrem">-</div><div class="stat-lbl">Premium</div></div>
+        <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-val" id="sHabits">-</div><div class="stat-lbl">Hábitos</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="sComp">-</div><div class="stat-lbl">Completados</div></div>
+      </div>
+      <div class="card"><div class="card-title">📊 Distribución por Edad</div><canvas id="ageChart" height="80"></canvas></div>
+      <div class="card"><div class="card-title">👫 Por Sexo</div><canvas id="genChart" height="100"></canvas></div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="page" id="usersPage">
+      <h2 style="margin-bottom:18px">👥 Gestión de Usuarios</h2>
+      <div class="card">
+        <div class="search-row">
+          <input id="searchQ" placeholder="🔍 Buscar por nombre o correo..." oninput="filterUsers()">
+          <select id="genFilter" onchange="filterUsers()"><option value="">Todos</option><option value="male">Hombres</option><option value="female">Mujeres</option></select>
+        </div>
+        <table><thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Edad</th><th>Sexo</th><th>Plan</th><th>Estado</th><th>Acción</th></tr></thead>
+        <tbody id="usersBody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- ESTADÍSTICAS -->
+    <div class="page" id="statsPage">
+      <h2 style="margin-bottom:18px">📈 Estadísticas</h2>
+      <div class="card"><div class="card-title">📅 Registro mensual de usuarios</div><canvas id="monthChart" height="80"></canvas></div>
+    </div>
+
+    <!-- BLOQUEADOS -->
+    <div class="page" id="blockedPage">
+      <h2 style="margin-bottom:18px">🚫 Usuarios Bloqueados</h2>
+      <div class="card">
+        <table><thead><tr><th>Nombre</th><th>Correo</th><th>Motivo</th><th>Acción</th></tr></thead>
+        <tbody id="blockedBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://usqugtxeynkozlobeojt.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzcXVndHhleW5rb3psb2Jlb2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTYxMzAsImV4cCI6MjA4NjY3MjEzMH0.zs4XiF8AgcE-l3ebtaxvoN7V9rf-6MHWNxMThiQUXKE';
+// IMPORTANTE: Reemplaza con tu correo de administrador
+const ADMIN_EMAIL = 'TU_CORREO_ADMIN@gmail.com';
+
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+let users = [];
+
+function toast(msg, ok=true){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.background=ok?'#2ECC71':'#E74C3C';
+  t.style.display='block'; setTimeout(()=>t.style.display='none',3000);
+}
+
+async function doLogin(){
+  const email=document.getElementById('adEmail').value;
+  const pass=document.getElementById('adPass').value;
+  if(email!==ADMIN_EMAIL){toast('Acceso no autorizado',false);return;}
+  const {error}=await db.auth.signInWithPassword({email,password:pass});
+  if(error){toast(error.message,false);return;}
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('dash').classList.add('show');
+  loadData();
+}
+
+async function doLogout(){
+  await db.auth.signOut();
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('dash').classList.remove('show');
+}
+
+async function loadData(){
+  const [{data:us},{count:hc},{count:cc}]=await Promise.all([
+    db.from('user_profiles').select('*').order('created_at',{ascending:false}),
+    db.from('habits').select('*',{count:'exact',head:true}),
+    db.from('habit_completions').select('*',{count:'exact',head:true}),
+  ]);
+  users=us||[];
+  document.getElementById('sUsers').textContent=users.length;
+  document.getElementById('sPrem').textContent=users.filter(u=>u.is_premium).length;
+  document.getElementById('sHabits').textContent=hc||0;
+  document.getElementById('sComp').textContent=cc||0;
+  renderTable(users);
+  renderBlocked(users.filter(u=>u.is_blocked));
+  renderCharts(users);
+}
+
+function age(dob){if(!dob)return'?';let a=new Date().getFullYear()-new Date(dob).getFullYear();return a;}
+
+function renderTable(list){
+  const b=document.getElementById('usersBody');
+  if(!list.length){b.innerHTML='<tr><td colspan="8" style="text-align:center;color:#999">Sin resultados</td></tr>';return;}
+  b.innerHTML=list.map(u=>`<tr>
+    <td><strong>${u.full_name}</strong></td><td>${u.email}</td><td>${u.phone}</td>
+    <td>${age(u.birth_date)} años</td>
+    <td><span class="badge ${u.gender==='male'?'b-male':'b-female'}">${u.gender==='male'?'👨 H':'👩 M'}</span></td>
+    <td><span class="badge ${u.is_premium?'b-prem':'b-free'}">${u.is_premium?'⭐ Premium':'Gratis'}</span></td>
+    <td><span class="badge ${u.is_blocked?'b-block':'b-active'}">${u.is_blocked?'🚫 Bloqueado':'✅ Activo'}</span></td>
+    <td>${u.is_blocked
+      ?`<button class="btn btn-sm btn-success" onclick="toggleBlock('${u.id}',false)">Desbloquear</button>`
+      :`<button class="btn btn-sm btn-danger" onclick="promptBlock('${u.id}','${u.full_name}')">Bloquear</button>`
+    }</td>
+  </tr>`).join('');
+}
+
+function filterUsers(){
+  const q=document.getElementById('searchQ').value.toLowerCase();
+  const g=document.getElementById('genFilter').value;
+  renderTable(users.filter(u=>(!q||(u.full_name?.toLowerCase().includes(q)||u.email?.toLowerCase().includes(q)))&&(!g||u.gender===g)));
+}
+
+async function promptBlock(id,name){
+  const reason=prompt(`¿Por qué bloqueas a ${name}? (esto quedará registrado)`);
+  if(!reason)return;
+  await toggleBlock(id,true,reason);
+}
+
+async function toggleBlock(id,block,reason=''){
+  await db.from('user_profiles').update({is_blocked:block,block_reason:block?reason:null}).eq('id',id);
+  toast(block?'Usuario bloqueado':'Usuario desbloqueado');
+  loadData();
+}
+
+function renderBlocked(list){
+  const b=document.getElementById('blockedBody');
+  if(!list.length){b.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999">Sin usuarios bloqueados</td></tr>';return;}
+  b.innerHTML=list.map(u=>`<tr>
+    <td><strong>${u.full_name}</strong></td><td>${u.email}</td>
+    <td>${u.block_reason||'Sin motivo'}</td>
+    <td><button class="btn btn-sm btn-success" onclick="toggleBlock('${u.id}',false)">Desbloquear</button></td>
+  </tr>`).join('');
+}
+
+function renderCharts(us){
+  const ranges={'6-12':0,'13-17':0,'18-24':0,'25-34':0,'35-44':0,'45-54':0,'55+':0};
+  us.forEach(u=>{
+    const a=age(u.birth_date);
+    if(a<=12)ranges['6-12']++;else if(a<=17)ranges['13-17']++;else if(a<=24)ranges['18-24']++;
+    else if(a<=34)ranges['25-34']++;else if(a<=44)ranges['35-44']++;else if(a<=54)ranges['45-54']++;else ranges['55+']++;
+  });
+  new Chart(document.getElementById('ageChart'),{type:'bar',data:{labels:Object.keys(ranges),datasets:[{label:'Usuarios',data:Object.values(ranges),backgroundColor:'#4A90D9',borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}}}});
+
+  const m=us.filter(u=>u.gender==='male').length, f=us.length-m;
+  new Chart(document.getElementById('genChart'),{type:'doughnut',data:{labels:['Hombres','Mujeres'],datasets:[{data:[m,f],backgroundColor:['#1E5F9E','#C44480']}]},options:{responsive:true}});
+
+  const months={};
+  us.forEach(u=>{if(u.created_at){const k=u.created_at.slice(0,7);months[k]=(months[k]||0)+1;}});
+  const sorted=Object.keys(months).sort().slice(-6);
+  new Chart(document.getElementById('monthChart'),{type:'line',data:{labels:sorted,datasets:[{label:'Nuevos usuarios',data:sorted.map(k=>months[k]),borderColor:'#1E5F9E',tension:.3,fill:true,backgroundColor:'rgba(30,95,158,.1)'}]},options:{responsive:true}});
+}
+
+function showPage(name,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(name+'Page').classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
