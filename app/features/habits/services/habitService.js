@@ -1,5 +1,6 @@
 // app/services/habitService.js
 import { supabase } from '../../../core/supabase/client';
+import { awardHabitCompletionPoints } from '../../levels/services/levelService';
 
 const FREE_LIMIT = 3;
 
@@ -57,9 +58,16 @@ export const completeHabit = async (userId, habitId) => {
     const { error } = await supabase.from('habit_completions').insert({
       user_id: userId, habit_id: habitId, date: today
     });
-    if (error && error.code !== '23505') throw error; // 23505 = unique violation (ya completado)
+
+    const alreadyCompleted = error?.code === '23505';
+    if (error && !alreadyCompleted) throw error; // 23505 = unique violation (ya completado)
+
+    if (!alreadyCompleted) {
+      await awardHabitCompletionPoints(userId);
+    }
+
     await updateStreak(habitId);
-    return { success: true };
+    return { success: true, alreadyCompleted };
   } catch (error) {
     return { success: false, error: error.message };
   }

@@ -6,11 +6,13 @@ import { Colors } from '../../../core/theme/colors';
 import { supabase } from '../../../core/supabase/client';
 import { logoutUser } from '../../auth/services/authService';
 import { setLanguage, useTranslation } from '../../../core/i18n/useTranslation';
+import { getUserLevel } from '../../levels/services/levelService';
 
 export default function ProfileScreen({ navigation }) {
   const { t, language } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState({ habits: 0, completions: 0 });
+  const [levelData, setLevelData] = useState({ level: 1, safePoints: 0, progressInLevel: 0, pointsToNextLevel: 100, insignias: [] });
 
   useEffect(() => {
     const load = async () => {
@@ -23,6 +25,9 @@ export default function ProfileScreen({ navigation }) {
         supabase.from('habit_completions').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
       ]);
       setStats({ habits: h || 0, completions: c || 0 });
+
+      const levelResult = await getUserLevel(user.id);
+      if (levelResult.success) setLevelData(levelResult.levelData);
     };
     load();
   }, []);
@@ -58,6 +63,26 @@ export default function ProfileScreen({ navigation }) {
           {profile?.is_premium && <View style={styles.premBadge}><Text style={styles.premTxt}>⭐ Premium</Text></View>}
           <View style={styles.ageBadge}><Text style={styles.ageTxt}>{calcAge(profile?.birth_date)} años · {profile?.gender === 'male' ? '👨' : '👩'}</Text></View>
         </View>
+      </View>
+
+      <View style={styles.levelCard}>
+        <View style={styles.levelTop}>
+          <Text style={styles.levelTitle}>Nivel {levelData.level}</Text>
+          <Text style={styles.levelPts}>{levelData.safePoints} pts</Text>
+        </View>
+        <View style={styles.levelBar}>
+          <View style={[styles.levelBarFill, { width: `${Math.min(100, levelData.progressInLevel)}%` }]} />
+        </View>
+        <Text style={styles.levelHint}>Faltan {levelData.pointsToNextLevel} pts para el siguiente nivel</Text>
+        {!!levelData.insignias?.length && (
+          <View style={styles.badgesRow}>
+            {levelData.insignias.slice(-3).map((b) => (
+              <View key={b.id} style={styles.badgePill}>
+                <Text style={styles.badgePillText}>🏅 {b.label}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       {/* Stats */}
@@ -101,6 +126,16 @@ const styles = StyleSheet.create({
   premTxt: { color: Colors.white, fontWeight: 'bold', fontSize: 12 },
   ageBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 11, paddingVertical: 4, borderRadius: 12 },
   ageTxt: { color: Colors.white, fontSize: 12 },
+  levelCard: { marginHorizontal: 16, marginTop: 14, backgroundColor: Colors.white, borderRadius: 16, padding: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  levelTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  levelTitle: { fontSize: 16, fontWeight: 'bold', color: Colors.textPrimary },
+  levelPts: { fontSize: 14, fontWeight: '700', color: Colors.primary },
+  levelBar: { marginTop: 8, height: 8, borderRadius: 8, backgroundColor: Colors.divider, overflow: 'hidden' },
+  levelBarFill: { height: '100%', backgroundColor: Colors.primary },
+  levelHint: { marginTop: 8, fontSize: 12, color: Colors.textSecondary },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  badgePill: { backgroundColor: Colors.primaryUltraLight, borderRadius: 12, paddingVertical: 4, paddingHorizontal: 8 },
+  badgePillText: { color: Colors.primary, fontSize: 12, fontWeight: '600' },
   statsRow: { flexDirection: 'row', margin: 16, gap: 12 },
   statCard: { flex: 1, backgroundColor: Colors.white, borderRadius: 16, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
   statVal: { fontSize: 26, fontWeight: 'bold', color: Colors.primary },
