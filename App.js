@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import AppNavigator from './app/navigation/AppNavigator';
-import { requestNotificationPermission, setupNotificationListeners } from './app/services/notificationService';
-import { Colors } from './app/constants/colors';
+import AppNavigator from './app/core/navigation/AppNavigator';
+import { requestNotificationPermission, scheduleWeeklySummaryNotification, setupNotificationListeners } from './app/core/notifications/notificationService';
+import { Colors } from './app/core/theme/colors';
 
 export default function App() {
   useEffect(() => {
     requestNotificationPermission();
+    scheduleWeeklySummaryNotification();
+
     const cleanup = setupNotificationListeners(
       (notification) => console.log('Notificación recibida:', notification.request.content.title),
       (response) => console.log('Tapped:', response.notification.request.content.data)
