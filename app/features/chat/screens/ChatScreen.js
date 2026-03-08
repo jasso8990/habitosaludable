@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { Colors } from '../../../core/theme/colors';
 import { getMessages, sendMessage, subscribeToMessages, markAsRead, blockUser, isUserBlocked, unblockUser, uploadChatMedia } from '../services/chatService';
+import { createReport } from '../../moderation/services/reportService';
 
 export default function ChatScreen({ route, navigation }) {
   const { conversationId, otherUser, currentUserId } = route.params;
@@ -36,10 +37,23 @@ export default function ChatScreen({ route, navigation }) {
     if (r.success) { setMsgs(r.messages); markAsRead(conversationId, currentUserId); }
   };
 
+  const reportUser = async () => {
+    const r = await createReport({
+      reporterId: currentUserId,
+      contenidoId: otherUser?.id || conversationId,
+      tipo: 'usuario',
+      sourceData: otherUser,
+      motivo: 'Reporte desde chat',
+    });
+
+    Alert.alert(r.success ? '✅ Reporte enviado' : 'Error', r.success ? 'Gracias, revisaremos este caso.' : r.error);
+  };
+
   const showOptions = () => {
     Alert.alert(otherUser?.full_name, '', [
       { text: blocked ? 'Desbloquear usuario' : 'Bloquear usuario', style: 'destructive',
         onPress: async () => { blocked ? await unblockUser(currentUserId, otherUser.id) : await blockUser(currentUserId, otherUser.id); setBlocked(!blocked); } },
+      { text: 'Reportar usuario', onPress: reportUser },
       { text: 'Cancelar', style: 'cancel' },
     ]);
   };

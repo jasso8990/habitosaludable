@@ -4,6 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Share, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../core/theme/colors';
 import { supabase } from '../../../core/supabase/client';
+import { createReport } from '../../moderation/services/reportService';
 
 export default function StoriesScreen() {
   const [stories, setStories] = useState([]);
@@ -22,6 +23,30 @@ export default function StoriesScreen() {
       .select(`*, author:user_profiles!user_id(id, full_name)`)
       .eq('is_visible', true).order('created_at', { ascending: false }).limit(30);
     setStories(data || []);
+  };
+
+
+
+  const handleReportStory = async (story) => {
+    if (!userId) return;
+
+    Alert.alert('Reportar historia', '¿Deseas reportar esta historia para revisión del equipo?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Reportar',
+        style: 'destructive',
+        onPress: async () => {
+          const r = await createReport({
+            reporterId: userId,
+            contenidoId: story.id,
+            tipo: 'historia',
+            sourceData: story,
+            motivo: 'Reporte desde historias',
+          });
+          Alert.alert(r.success ? '✅ Reporte enviado' : 'Error', r.success ? 'Gracias, revisaremos este contenido.' : r.error);
+        },
+      },
+    ]);
   };
 
   const handleLike = async (id) => {
@@ -57,6 +82,12 @@ export default function StoriesScreen() {
                 <Ionicons name="share-outline" size={18} color={Colors.primary} />
                 <Text style={styles.actionTxt}>Compartir</Text>
               </TouchableOpacity>
+              {item.user_id !== userId && (
+                <TouchableOpacity style={styles.actionBtn} onPress={() => handleReportStory(item)}>
+                  <Ionicons name="flag-outline" size={18} color={Colors.error} />
+                  <Text style={styles.actionTxt}>Reportar</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         )}
