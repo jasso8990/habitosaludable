@@ -73,7 +73,12 @@ export default function AssistantScreen({ navigation }) {
       return;
     }
     if (r.success) {
-      await scheduleHabitReminder(r.habit);
+      const reminderResult = await scheduleHabitReminder(r.habit);
+
+      if (reminderResult?.reason === 'quiet_hours_conflict') {
+        Alert.alert('⏰ Recordatorio no programado', 'La hora del hábito cae dentro de tus horas silenciosas. Puedes ajustarla en una próxima versión de preferencias.');
+      }
+
       Alert.alert('🎉', t('assistant.habitCreated'));
       setProfile(p => p ? { ...p, habitCount: (p.habitCount || 0) + 1 } : p);
     }
