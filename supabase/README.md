@@ -16,6 +16,7 @@ Este directorio contiene la base inicial del backend para el MVP con enfoque pri
    - `supabase/migrations/20260308_002_user_keyring.sql`
    - `supabase/migrations/20260308_003_levels_hardening.sql`
    - `supabase/migrations/20260308_004_admin_reports_moderation.sql`
+   - `supabase/migrations/20260308_005_admin_reportes_update_policy.sql`
 3. Verificar que RLS quedó habilitado y políticas creadas.
 
 ## Nota

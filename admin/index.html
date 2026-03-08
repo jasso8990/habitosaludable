@@ -159,7 +159,34 @@ const ADMIN_EMAIL = 'jasso8990@gmail.com';
 const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY);
 let users = [];
+let usersRaw = [];
 let reports = [];
+
+
+
+function safe(v){
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function normalizeUser(u){
+  return {
+    id: u.id,
+    full_name: u.full_name || u.nombre || 'Sin nombre',
+    gender: u.gender || u.sexo || 'other',
+    birth_date: u.birth_date || u.fecha_nacimiento || null,
+    is_premium: !!u.is_premium,
+    is_blocked: u.is_blocked ?? (u.estado === 'bloqueado'),
+    block_reason: u.block_reason || null,
+    created_at: u.created_at,
+  };
+}
+
+async function ensureAdminRole(userId){
+  // Prefer explicit rol from users table.
+  const { data, error } = await db.from('users').select('rol').eq('id', userId).maybeSingle();
+  if (!error && data?.rol === 'admin') return true;
+  return false;
+}
 
 function toast(msg, ok=true){
   const t=document.getElementById('toast');
@@ -171,8 +198,18 @@ async function doLogin(){
   const email=document.getElementById('adEmail').value;
   const pass=document.getElementById('adPass').value;
   if(email!==ADMIN_EMAIL){toast('Acceso no autorizado',false);return;}
-  const {error}=await db.auth.signInWithPassword({email,password:pass});
+
+  const {data:authRes,error}=await db.auth.signInWithPassword({email,password:pass});
   if(error){toast(error.message,false);return;}
+
+  const uid = authRes?.user?.id;
+  const isAdmin = uid ? await ensureAdminRole(uid) : false;
+  if(!isAdmin){
+    await db.auth.signOut();
+    toast('Tu cuenta no tiene rol admin',false);
+    return;
+  }
+
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('dash').classList.add('show');
   loadData();
@@ -185,13 +222,29 @@ async function doLogout(){
 }
 
 async function loadData(){
-  const [{data:us},{count:hc},{count:rp},{data:reps}]=await Promise.all([
-    db.from('user_profiles').select('*').order('created_at',{ascending:false}),
+  let us=[];
+  const usersFromCore = await db.from('users')
+    .select('id,nombre,sexo,fecha_nacimiento,estado,rol,created_at')
+    .order('created_at',{ascending:false});
+
+  if(!usersFromCore.error && usersFromCore.data?.length){
+    us = usersFromCore.data;
+  } else {
+    const legacy = await db.from('user_profiles')
+      .select('id,full_name,gender,birth_date,is_premium,is_blocked,block_reason,created_at')
+      .order('created_at',{ascending:false});
+    us = legacy.data || [];
+  }
+
+  const [{count:hc},{count:rp},{data:reps}] = await Promise.all([
     db.from('habits').select('*',{count:'exact',head:true}),
     db.from('reportes').select('*',{count:'exact',head:true}),
     db.from('reportes').select('*').order('created_at',{ascending:false}).limit(100),
   ]);
-  users=us||[];
+
+  usersRaw = us || [];
+  users = usersRaw.map(normalizeUser);
+
   document.getElementById('sUsers').textContent=users.length;
   document.getElementById('sPrem').textContent=users.filter(u=>u.is_premium).length;
   document.getElementById('sHabits').textContent=hc||0;
@@ -209,7 +262,7 @@ function renderTable(list){
   const b=document.getElementById('usersBody');
   if(!list.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;color:#999">Sin resultados</td></tr>';return;}
   b.innerHTML=list.map(u=>`<tr>
-    <td><strong>${u.full_name}</strong></td>
+    <td><strong>${safe(u.full_name)}</strong></td>
     <td>${age(u.birth_date)} años</td>
     <td><span class="badge ${u.gender==='male'?'b-male':'b-female'}">${u.gender==='male'?'👨 H':'👩 M'}</span></td>
     <td><span class="badge ${u.is_premium?'b-prem':'b-free'}">${u.is_premium?'⭐ Premium':'Gratis'}</span></td>
@@ -234,7 +287,11 @@ async function promptBlock(id,name){
 }
 
 async function toggleBlock(id,block,reason=''){
+  // Legacy profile schema
   await db.from('user_profiles').update({is_blocked:block,block_reason:block?reason:null}).eq('id',id);
+  // New privacy-first schema
+  await db.from('users').update({estado:block?'bloqueado':'activo'}).eq('id',id);
+
   toast(block?'Usuario bloqueado':'Usuario desbloqueado');
   loadData();
 }
@@ -243,7 +300,7 @@ function renderBlocked(list){
   const b=document.getElementById('blockedBody');
   if(!list.length){b.innerHTML='<tr><td colspan="3" style="text-align:center;color:#999">Sin usuarios bloqueados</td></tr>';return;}
   b.innerHTML=list.map(u=>`<tr>
-    <td><strong>${u.full_name}</strong></td>
+    <td><strong>${safe(u.full_name)}</strong></td>
     <td>${u.block_reason||'Sin motivo'}</td>
     <td><button class="btn btn-sm btn-success" onclick="toggleBlock('${u.id}',false)">Desbloquear</button></td>
   </tr>`).join('');
@@ -300,8 +357,8 @@ function renderReports(){
   }
 
   b.innerHTML=filtered.map(r=>`<tr>
-    <td><strong>${r.tipo||'N/A'}</strong></td>
-    <td>${r.contenido_id||'N/A'}</td>
+    <td><strong>${safe(r.tipo||'N/A')}</strong></td>
+    <td>${safe(r.contenido_id||'N/A')}</td>
     <td>${reportStatusBadge(r.estado)}</td>
     <td>${r.created_at?new Date(r.created_at).toLocaleString('es-MX'):'-'}</td>
     <td>
