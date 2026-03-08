@@ -59,6 +59,10 @@ export default function DevotionalScreen() {
 
   const saveNote = async () => {
     if (!note.trim() || dev?.id === 'default') { Alert.alert('Nota', 'Nota guardada localmente'); setSavedNote(note); return; }
+    if (!userId) {
+      Alert.alert('Inicia sesión', 'Debes iniciar sesión para guardar notas cifradas en la nube.');
+      return;
+    }
     let noteToStore = note;
     try {
       noteToStore = await encryptDevotionalNote(userId, note);
@@ -69,7 +73,13 @@ export default function DevotionalScreen() {
     }
 
     const { error } = await supabase.from('devotional_notes').upsert({ user_id: userId, devotional_id: dev.id, note: noteToStore });
-    if (!error) { setSavedNote(note); Alert.alert('✅', 'Nota guardada exitosamente'); }
+    if (error) {
+      Alert.alert('Error', 'No se pudo guardar tu nota. Intenta nuevamente.');
+      return;
+    }
+
+    setSavedNote(note);
+    Alert.alert('✅', 'Nota guardada exitosamente');
   };
 
   const shareVerse = () => Share.share({ message: `📖 ${dev?.verse}\n— ${dev?.verse_reference}\n\nReflexión: ${dev?.reflection}\n\n- Hábitos Saludables App` });

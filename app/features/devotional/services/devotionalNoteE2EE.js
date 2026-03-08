@@ -6,6 +6,8 @@ const NOTE_E2EE_PREFIX = '__E2EE_NOTE__';
 const privateKeyStorageKey = (userId) => `e2ee:private:${userId}`;
 
 export const encryptDevotionalNote = async (userId, note) => {
+  if (!userId) throw new Error('Usuario no autenticado para cifrar la nota.');
+  if (!String(note || '').trim()) throw new Error('No hay contenido para cifrar.');
   const { data: keyRow, error } = await supabase
     .from('user_keyring')
     .select('public_key')
@@ -21,6 +23,7 @@ export const encryptDevotionalNote = async (userId, note) => {
 };
 
 export const decryptDevotionalNote = async (userId, storedValue) => {
+  if (!userId) throw new Error('Usuario no autenticado para descifrar la nota.');
   if (!storedValue) return '';
   if (!storedValue.startsWith(NOTE_E2EE_PREFIX)) return storedValue;
 
