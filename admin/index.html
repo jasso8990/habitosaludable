@@ -50,6 +50,11 @@
     .dash{display:none}.dash.show{display:block}
     .section-wrap{display:none}
     .section-wrap.active{display:block}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:300}
+    .modal-backdrop.show{display:flex}
+    .modal-card{width:min(720px,92vw);max-height:80vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 18px 46px rgba(0,0,0,.25)}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:10px}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#F5F8FC;border-radius:8px;padding:10px;font-size:12px;white-space:pre-wrap;word-break:break-word}
   </style>
 </head>
 <body>
@@ -150,6 +155,17 @@
   </div>
 </div>
 
+
+<div class="modal-backdrop" id="reportDetailModal">
+  <div class="modal-card">
+    <div class="modal-title">🧾 Detalle de reporte</div>
+    <div id="reportDetailBody" class="code"></div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn btn-sm" onclick="closeReportDetail()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL = 'https://usqugtxeynkozlobeojt.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzcXVndHhleW5rb3psb2Jlb2p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwOTYxMzAsImV4cCI6MjA4NjY3MjEzMH0.zs4XiF8AgcE-l3ebtaxvoN7V9rf-6MHWNxMThiQUXKE';
@@ -161,6 +177,7 @@ const db = createClient(SUPA_URL, SUPA_KEY);
 let users = [];
 let usersRaw = [];
 let reports = [];
+let currentAdminUserId = null;
 
 
 
@@ -203,6 +220,7 @@ async function doLogin(){
   if(error){toast(error.message,false);return;}
 
   const uid = authRes?.user?.id;
+  currentAdminUserId = uid || null;
   const isAdmin = uid ? await ensureAdminRole(uid) : false;
   if(!isAdmin){
     await db.auth.signOut();
@@ -217,6 +235,7 @@ async function doLogin(){
 
 async function doLogout(){
   await db.auth.signOut();
+  currentAdminUserId = null;
   document.getElementById('loginWrap').style.display='flex';
   document.getElementById('dash').classList.remove('show');
 }
@@ -334,9 +353,38 @@ function reportStatusBadge(status){
 }
 
 async function setReportStatus(id,status){
-  await db.from('reportes').update({estado:status, reviewed_at:new Date().toISOString()}).eq('id',id);
+  await db.from('reportes').update({estado:status, reviewed_at:new Date().toISOString(), reviewed_by: currentAdminUserId}).eq('id',id);
   toast(`Reporte ${status}`);
   loadData();
+}
+
+
+function closeReportDetail(){
+  const m=document.getElementById('reportDetailModal');
+  m.classList.remove('show');
+}
+
+function openReportDetail(reportId){
+  const m=document.getElementById('reportDetailModal');
+  const b=document.getElementById('reportDetailBody');
+  const r=reports.find(x=>x.id===reportId);
+  if(!r){ b.textContent='Reporte no encontrado'; m.classList.add('show'); return; }
+
+  const snapshot = r.snapshot_contenido || {};
+  const payload = {
+    id: r.id,
+    tipo: r.tipo,
+    contenido_id: r.contenido_id,
+    estado: r.estado || 'pendiente',
+    created_at: r.created_at,
+    reviewed_at: r.reviewed_at || null,
+    reviewed_by: r.reviewed_by || null,
+    motivo: snapshot.motivo || null,
+    snapshot: snapshot.snapshot || null,
+  };
+
+  b.textContent = JSON.stringify(payload, null, 2);
+  m.classList.add('show');
 }
 
 function renderReports(){
@@ -362,7 +410,8 @@ function renderReports(){
     <td>${reportStatusBadge(r.estado)}</td>
     <td>${r.created_at?new Date(r.created_at).toLocaleString('es-MX'):'-'}</td>
     <td>
-      <button class="btn btn-sm btn-success" onclick="setReportStatus('${r.id}','resuelto')">Resolver</button>
+      <button class="btn btn-sm" onclick="openReportDetail('${r.id}')">Detalle</button>
+      <button class="btn btn-sm btn-success" style="margin-left:6px" onclick="setReportStatus('${r.id}','resuelto')">Resolver</button>
       <button class="btn btn-sm" style="margin-left:6px" onclick="setReportStatus('${r.id}','descartado')">Descartar</button>
     </td>
   </tr>`).join('');
