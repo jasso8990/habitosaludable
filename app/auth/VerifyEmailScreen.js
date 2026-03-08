@@ -2,8 +2,8 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
+import { Colors } from '../core/theme/colors';
+import { supabase } from '../core/supabase/client';
 
 export default function VerifyEmailScreen({ route }) {
   const { email } = route.params;

@@ -50,6 +50,11 @@
     .dash{display:none}.dash.show{display:block}
     .section-wrap{display:none}
     .section-wrap.active{display:block}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:300}
+    .modal-backdrop.show{display:flex}
+    .modal-card{width:min(720px,92vw);max-height:80vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 18px 46px rgba(0,0,0,.25)}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:10px}
+    .code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#F5F8FC;border-radius:8px;padding:10px;font-size:12px;white-space:pre-wrap;word-break:break-word}
   </style>
 </head>
 <body>
@@ -82,6 +87,7 @@
     <div class="nav-item" onclick="showPage('users',this)">👥 Usuarios</div>
     <div class="nav-item" onclick="showPage('stats',this)">📈 Estadísticas</div>
     <div class="nav-item" onclick="showPage('blocked',this)">🚫 Bloqueados</div>
+    <div class="nav-item" onclick="showPage('reports',this)">🛡️ Reportes</div>
     <div class="nav-item" style="position:absolute;bottom:20px;width:100%" onclick="doLogout()">🚪 Cerrar Sesión</div>
   </div>
 
@@ -94,7 +100,7 @@
         <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="sUsers">-</div><div class="stat-lbl">Usuarios</div></div>
         <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-val" id="sPrem">-</div><div class="stat-lbl">Premium</div></div>
         <div class="stat-card"><div class="stat-icon">🌱</div><div class="stat-val" id="sHabits">-</div><div class="stat-lbl">Hábitos</div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="sComp">-</div><div class="stat-lbl">Completados</div></div>
+        <div class="stat-card"><div class="stat-icon">🛡️</div><div class="stat-val" id="sReports">-</div><div class="stat-lbl">Reportes</div></div>
       </div>
       <div class="card"><div class="card-title">📊 Distribución por Edad</div><canvas id="ageChart" height="80"></canvas></div>
       <div class="card"><div class="card-title">👫 Por Sexo</div><canvas id="genChart" height="100"></canvas></div>
@@ -108,7 +114,7 @@
           <input id="searchQ" placeholder="🔍 Buscar por nombre o correo..." oninput="filterUsers()">
           <select id="genFilter" onchange="filterUsers()"><option value="">Todos</option><option value="male">Hombres</option><option value="female">Mujeres</option></select>
         </div>
-        <table><thead><tr><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Edad</th><th>Sexo</th><th>Plan</th><th>Estado</th><th>Acción</th></tr></thead>
+        <table><thead><tr><th>Nombre</th><th>Edad</th><th>Sexo</th><th>Plan</th><th>Estado</th><th>Acción</th></tr></thead>
         <tbody id="usersBody"></tbody></table>
       </div>
     </div>
@@ -123,9 +129,39 @@
     <div class="page" id="blockedPage">
       <h2 style="margin-bottom:18px">🚫 Usuarios Bloqueados</h2>
       <div class="card">
-        <table><thead><tr><th>Nombre</th><th>Correo</th><th>Motivo</th><th>Acción</th></tr></thead>
+        <table><thead><tr><th>Nombre</th><th>Motivo</th><th>Acción</th></tr></thead>
         <tbody id="blockedBody"></tbody></table>
       </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="page" id="reportsPage">
+      <h2 style="margin-bottom:18px">🛡️ Moderación de Reportes</h2>
+      <div class="card">
+        <div class="search-row">
+          <input id="reportSearch" placeholder="🔍 Buscar por tipo o ID de contenido..." oninput="renderReports()">
+          <select id="reportStatusFilter" onchange="renderReports()">
+            <option value="">Todos</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="resuelto">Resuelto</option>
+            <option value="descartado">Descartado</option>
+          </select>
+        </div>
+        <table><thead><tr><th>Tipo</th><th>Contenido ID</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
+        <tbody id="reportsBody"></tbody></table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="modal-backdrop" id="reportDetailModal">
+  <div class="modal-card">
+    <div class="modal-title">🧾 Detalle de reporte</div>
+    <div id="reportDetailBody" class="code"></div>
+    <div style="margin-top:12px;text-align:right">
+      <button class="btn btn-sm" onclick="closeReportDetail()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -139,6 +175,35 @@ const ADMIN_EMAIL = 'jasso8990@gmail.com';
 const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY);
 let users = [];
+let usersRaw = [];
+let reports = [];
+let currentAdminUserId = null;
+
+
+
+function safe(v){
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function normalizeUser(u){
+  return {
+    id: u.id,
+    full_name: u.full_name || u.nombre || 'Sin nombre',
+    gender: u.gender || u.sexo || 'other',
+    birth_date: u.birth_date || u.fecha_nacimiento || null,
+    is_premium: !!u.is_premium,
+    is_blocked: u.is_blocked ?? (u.estado === 'bloqueado'),
+    block_reason: u.block_reason || null,
+    created_at: u.created_at,
+  };
+}
+
+async function ensureAdminRole(userId){
+  // Prefer explicit rol from users table.
+  const { data, error } = await db.from('users').select('rol').eq('id', userId).maybeSingle();
+  if (!error && data?.rol === 'admin') return true;
+  return false;
+}
 
 function toast(msg, ok=true){
   const t=document.getElementById('toast');
@@ -150,8 +215,19 @@ async function doLogin(){
   const email=document.getElementById('adEmail').value;
   const pass=document.getElementById('adPass').value;
   if(email!==ADMIN_EMAIL){toast('Acceso no autorizado',false);return;}
-  const {error}=await db.auth.signInWithPassword({email,password:pass});
+
+  const {data:authRes,error}=await db.auth.signInWithPassword({email,password:pass});
   if(error){toast(error.message,false);return;}
+
+  const uid = authRes?.user?.id;
+  currentAdminUserId = uid || null;
+  const isAdmin = uid ? await ensureAdminRole(uid) : false;
+  if(!isAdmin){
+    await db.auth.signOut();
+    toast('Tu cuenta no tiene rol admin',false);
+    return;
+  }
+
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('dash').classList.add('show');
   loadData();
@@ -159,33 +235,53 @@ async function doLogin(){
 
 async function doLogout(){
   await db.auth.signOut();
+  currentAdminUserId = null;
   document.getElementById('loginWrap').style.display='flex';
   document.getElementById('dash').classList.remove('show');
 }
 
 async function loadData(){
-  const [{data:us},{count:hc},{count:cc}]=await Promise.all([
-    db.from('user_profiles').select('*').order('created_at',{ascending:false}),
+  let us=[];
+  const usersFromCore = await db.from('users')
+    .select('id,nombre,sexo,fecha_nacimiento,estado,rol,created_at')
+    .order('created_at',{ascending:false});
+
+  if(!usersFromCore.error && usersFromCore.data?.length){
+    us = usersFromCore.data;
+  } else {
+    const legacy = await db.from('user_profiles')
+      .select('id,full_name,gender,birth_date,is_premium,is_blocked,block_reason,created_at')
+      .order('created_at',{ascending:false});
+    us = legacy.data || [];
+  }
+
+  const [{count:hc},{count:rp},{data:reps}] = await Promise.all([
     db.from('habits').select('*',{count:'exact',head:true}),
-    db.from('habit_completions').select('*',{count:'exact',head:true}),
+    db.from('reportes').select('*',{count:'exact',head:true}),
+    db.from('reportes').select('*').order('created_at',{ascending:false}).limit(100),
   ]);
-  users=us||[];
+
+  usersRaw = us || [];
+  users = usersRaw.map(normalizeUser);
+
   document.getElementById('sUsers').textContent=users.length;
   document.getElementById('sPrem').textContent=users.filter(u=>u.is_premium).length;
   document.getElementById('sHabits').textContent=hc||0;
-  document.getElementById('sComp').textContent=cc||0;
+  document.getElementById('sReports').textContent=rp||0;
+  reports = reps || [];
   renderTable(users);
   renderBlocked(users.filter(u=>u.is_blocked));
   renderCharts(users);
+  renderReports();
 }
 
 function age(dob){if(!dob)return'?';let a=new Date().getFullYear()-new Date(dob).getFullYear();return a;}
 
 function renderTable(list){
   const b=document.getElementById('usersBody');
-  if(!list.length){b.innerHTML='<tr><td colspan="8" style="text-align:center;color:#999">Sin resultados</td></tr>';return;}
+  if(!list.length){b.innerHTML='<tr><td colspan="6" style="text-align:center;color:#999">Sin resultados</td></tr>';return;}
   b.innerHTML=list.map(u=>`<tr>
-    <td><strong>${u.full_name}</strong></td><td>${u.email}</td><td>${u.phone}</td>
+    <td><strong>${safe(u.full_name)}</strong></td>
     <td>${age(u.birth_date)} años</td>
     <td><span class="badge ${u.gender==='male'?'b-male':'b-female'}">${u.gender==='male'?'👨 H':'👩 M'}</span></td>
     <td><span class="badge ${u.is_premium?'b-prem':'b-free'}">${u.is_premium?'⭐ Premium':'Gratis'}</span></td>
@@ -200,7 +296,7 @@ function renderTable(list){
 function filterUsers(){
   const q=document.getElementById('searchQ').value.toLowerCase();
   const g=document.getElementById('genFilter').value;
-  renderTable(users.filter(u=>(!q||(u.full_name?.toLowerCase().includes(q)||u.email?.toLowerCase().includes(q)))&&(!g||u.gender===g)));
+  renderTable(users.filter(u=>(!q||(u.full_name?.toLowerCase().includes(q)))&&(!g||u.gender===g)));
 }
 
 async function promptBlock(id,name){
@@ -210,16 +306,20 @@ async function promptBlock(id,name){
 }
 
 async function toggleBlock(id,block,reason=''){
+  // Legacy profile schema
   await db.from('user_profiles').update({is_blocked:block,block_reason:block?reason:null}).eq('id',id);
+  // New privacy-first schema
+  await db.from('users').update({estado:block?'bloqueado':'activo'}).eq('id',id);
+
   toast(block?'Usuario bloqueado':'Usuario desbloqueado');
   loadData();
 }
 
 function renderBlocked(list){
   const b=document.getElementById('blockedBody');
-  if(!list.length){b.innerHTML='<tr><td colspan="4" style="text-align:center;color:#999">Sin usuarios bloqueados</td></tr>';return;}
+  if(!list.length){b.innerHTML='<tr><td colspan="3" style="text-align:center;color:#999">Sin usuarios bloqueados</td></tr>';return;}
   b.innerHTML=list.map(u=>`<tr>
-    <td><strong>${u.full_name}</strong></td><td>${u.email}</td>
+    <td><strong>${safe(u.full_name)}</strong></td>
     <td>${u.block_reason||'Sin motivo'}</td>
     <td><button class="btn btn-sm btn-success" onclick="toggleBlock('${u.id}',false)">Desbloquear</button></td>
   </tr>`).join('');
@@ -241,6 +341,80 @@ function renderCharts(us){
   us.forEach(u=>{if(u.created_at){const k=u.created_at.slice(0,7);months[k]=(months[k]||0)+1;}});
   const sorted=Object.keys(months).sort().slice(-6);
   new Chart(document.getElementById('monthChart'),{type:'line',data:{labels:sorted,datasets:[{label:'Nuevos usuarios',data:sorted.map(k=>months[k]),borderColor:'#1E5F9E',tension:.3,fill:true,backgroundColor:'rgba(30,95,158,.1)'}]},options:{responsive:true}});
+}
+
+
+
+function reportStatusBadge(status){
+  const s=status||'pendiente';
+  if(s==='resuelto') return '<span class="badge b-active">✅ Resuelto</span>';
+  if(s==='descartado') return '<span class="badge b-free">➖ Descartado</span>';
+  return '<span class="badge b-block">🕒 Pendiente</span>';
+}
+
+async function setReportStatus(id,status){
+  await db.from('reportes').update({estado:status, reviewed_at:new Date().toISOString(), reviewed_by: currentAdminUserId}).eq('id',id);
+  toast(`Reporte ${status}`);
+  loadData();
+}
+
+
+function closeReportDetail(){
+  const m=document.getElementById('reportDetailModal');
+  m.classList.remove('show');
+}
+
+function openReportDetail(reportId){
+  const m=document.getElementById('reportDetailModal');
+  const b=document.getElementById('reportDetailBody');
+  const r=reports.find(x=>x.id===reportId);
+  if(!r){ b.textContent='Reporte no encontrado'; m.classList.add('show'); return; }
+
+  const snapshot = r.snapshot_contenido || {};
+  const payload = {
+    id: r.id,
+    tipo: r.tipo,
+    contenido_id: r.contenido_id,
+    estado: r.estado || 'pendiente',
+    created_at: r.created_at,
+    reviewed_at: r.reviewed_at || null,
+    reviewed_by: r.reviewed_by || null,
+    motivo: snapshot.motivo || null,
+    snapshot: snapshot.snapshot || null,
+  };
+
+  b.textContent = JSON.stringify(payload, null, 2);
+  m.classList.add('show');
+}
+
+function renderReports(){
+  const q=(document.getElementById('reportSearch')?.value||'').toLowerCase();
+  const st=document.getElementById('reportStatusFilter')?.value||'';
+  const b=document.getElementById('reportsBody');
+  if(!b) return;
+
+  const filtered=reports.filter(r=>{
+    const hit=!q || String(r.tipo||'').toLowerCase().includes(q) || String(r.contenido_id||'').toLowerCase().includes(q);
+    const ok=!st || (r.estado||'pendiente')===st;
+    return hit && ok;
+  });
+
+  if(!filtered.length){
+    b.innerHTML='<tr><td colspan="5" style="text-align:center;color:#999">Sin reportes</td></tr>';
+    return;
+  }
+
+  b.innerHTML=filtered.map(r=>`<tr>
+    <td><strong>${safe(r.tipo||'N/A')}</strong></td>
+    <td>${safe(r.contenido_id||'N/A')}</td>
+    <td>${reportStatusBadge(r.estado)}</td>
+    <td>${r.created_at?new Date(r.created_at).toLocaleString('es-MX'):'-'}</td>
+    <td>
+      <button class="btn btn-sm" onclick="openReportDetail('${r.id}')">Detalle</button>
+      <button class="btn btn-sm btn-success" style="margin-left:6px" onclick="setReportStatus('${r.id}','resuelto')">Resolver</button>
+      <button class="btn btn-sm" style="margin-left:6px" onclick="setReportStatus('${r.id}','descartado')">Descartar</button>
+    </td>
+  </tr>`).join('');
 }
 
 function showPage(name,el){
