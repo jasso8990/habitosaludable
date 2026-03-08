@@ -12,3 +12,5 @@
 
 ## Fallback
 - Si no hay llave privada local o no existe payload para ese usuario, se muestra `🔐 Mensaje cifrado`.
+
+- Para mensajes largos, el cifrado usa modo híbrido (AES-GCM + RSA-OAEP) de forma transparente para evitar límites de tamaño de RSA.

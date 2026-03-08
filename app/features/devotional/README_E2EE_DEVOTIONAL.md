@@ -10,3 +10,5 @@ Las notas personales (`devotional_notes.note`) soportan cifrado end-to-end incre
 - Requiere sesión activa para cifrar/guardar en Supabase; si no hay sesión, la UI informa al usuario.
 
 - Si falta la llave pública en `user_keyring`, el cliente intenta re-bootstrap (`bootstrapUserE2EE`) antes de fallar.
+
+- El cifrado usa fallback híbrido para notas largas (AES-GCM + RSA-OAEP), transparente para lectura/escritura.
