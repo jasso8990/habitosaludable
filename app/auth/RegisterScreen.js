@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../core/theme/colors';
 import { registerUser } from '../features/auth/services/authService';
 import { useTranslation } from '../core/i18n/useTranslation';
+import { isAtLeastAge } from '../core/security/ageValidation';
 
 export default function RegisterScreen({ navigation }) {
   const { t } = useTranslation();
@@ -27,6 +28,11 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email.includes('@')) { Alert.alert('Error', 'Correo inválido'); return; }
     if (form.phone.length < 10) { Alert.alert('Error', 'Teléfono inválido'); return; }
     if (!form.birthDate) { Alert.alert('Error', 'Ingresa tu fecha de nacimiento (YYYY-MM-DD)'); return; }
+
+    const ageCheck = isAtLeastAge(form.birthDate, 13);
+    if (!ageCheck.validDate) { Alert.alert('Error', 'Formato de fecha inválido. Usa YYYY-MM-DD'); return; }
+    if (!ageCheck.allowed) { Alert.alert('Error', 'Debes tener al menos 13 años para registrarte'); return; }
+
     if (!form.gender) { Alert.alert('Error', 'Selecciona tu sexo'); return; }
     setStep(2);
   };
