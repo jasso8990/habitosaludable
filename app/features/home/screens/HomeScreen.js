@@ -3,12 +3,12 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
-import { getUserHabits, getTodayHabits, completeHabit, getTodayCompletions, getWeeklyProgress } from '../services/habitService';
-import { getUserProfile } from '../services/authService';
-import { useTranslation } from '../i18n/useTranslation';
-import HabitCard from '../components/HabitCard';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
+import { getUserHabits, getTodayHabits, completeHabit, getTodayCompletions, getWeeklyProgress } from '../../habits/services/habitService';
+import { getUserProfile } from '../../auth/services/authService';
+import { useTranslation } from '../../../core/i18n/useTranslation';
+import HabitCard from '../../habits/components/HabitCard';
 
 export default function HomeScreen({ navigation }) {
   const { t } = useTranslation();

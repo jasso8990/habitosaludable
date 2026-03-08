@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
 
 export default function DevotionalScreen() {
   const [dev, setDev] = useState(null);

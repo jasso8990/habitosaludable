@@ -3,10 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Contacts from 'expo-contacts';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
 import { getUserConversations, getOrCreateConversation, searchUsersByPhone } from '../services/chatService';
-import { useTranslation } from '../i18n/useTranslation';
+import { useTranslation } from '../../../core/i18n/useTranslation';
 
 export default function ChatListScreen({ navigation }) {
   const { t } = useTranslation();

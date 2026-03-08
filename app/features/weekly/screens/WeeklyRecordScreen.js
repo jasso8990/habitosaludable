@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Share, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
-import { getWeeklyProgress } from '../services/habitService';
-import { generateCertificateMessage } from '../services/aiService';
-import { sendAchievementNotification } from '../services/notificationService';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
+import { getWeeklyProgress } from '../../habits/services/habitService';
+import { generateCertificateMessage } from '../../assistant/services/aiService';
+import { sendAchievementNotification } from '../../../core/notifications/notificationService';
 
 export default function WeeklyRecordScreen() {
   const [data, setData] = useState({ percentage: 0, completedHabits: 0, totalHabits: 0 });

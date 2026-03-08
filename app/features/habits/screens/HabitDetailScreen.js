@@ -2,9 +2,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../../core/theme/colors';
 import { deleteHabit } from '../services/habitService';
-import { cancelHabitReminder } from '../services/notificationService';
+import { cancelHabitReminder } from '../../../core/notifications/notificationService';
 
 export default function HabitDetailScreen({ route, navigation }) {
   const { habit } = route.params;

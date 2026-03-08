@@ -5,26 +5,26 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
+import { Colors } from '../theme/colors';
+import { supabase } from '../supabase/client';
 import { useTranslation } from '../i18n/useTranslation';
 
 // Auth
-import LoginScreen from '../auth/LoginScreen';
-import RegisterScreen from '../auth/RegisterScreen';
-import VerifyEmailScreen from '../auth/VerifyEmailScreen';
+import LoginScreen from '../../auth/LoginScreen';
+import RegisterScreen from '../../auth/RegisterScreen';
+import VerifyEmailScreen from '../../auth/VerifyEmailScreen';
 
 // Screens
-import HomeScreen from '../screens/HomeScreen';
-import AssistantScreen from '../screens/AssistantScreen';
-import ChatListScreen from '../screens/ChatListScreen';
-import ChatScreen from '../screens/ChatScreen';
-import StoriesScreen from '../screens/StoriesScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import DevotionalScreen from '../screens/DevotionalScreen';
-import WeeklyRecordScreen from '../screens/WeeklyRecordScreen';
-import HabitDetailScreen from '../screens/HabitDetailScreen';
-import PremiumScreen from '../screens/PremiumScreen';
+import HomeScreen from '../../features/home/screens/HomeScreen';
+import AssistantScreen from '../../features/assistant/screens/AssistantScreen';
+import ChatListScreen from '../../features/chat/screens/ChatListScreen';
+import ChatScreen from '../../features/chat/screens/ChatScreen';
+import StoriesScreen from '../../features/stories/screens/StoriesScreen';
+import ProfileScreen from '../../features/profile/screens/ProfileScreen';
+import DevotionalScreen from '../../features/devotional/screens/DevotionalScreen';
+import WeeklyRecordScreen from '../../features/weekly/screens/WeeklyRecordScreen';
+import HabitDetailScreen from '../../features/habits/screens/HabitDetailScreen';
+import PremiumScreen from '../../features/premium/screens/PremiumScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();

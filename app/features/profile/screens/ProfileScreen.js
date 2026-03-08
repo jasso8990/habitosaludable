@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
-import { logoutUser } from '../services/authService';
-import { setLanguage, useTranslation } from '../i18n/useTranslation';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
+import { logoutUser } from '../../auth/services/authService';
+import { setLanguage, useTranslation } from '../../../core/i18n/useTranslation';
 
 export default function ProfileScreen({ navigation }) {
   const { t, language } = useTranslation();

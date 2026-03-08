@@ -1,5 +1,5 @@
 // app/services/habitService.js
-import { supabase } from './supabase';
+import { supabase } from '../../../core/supabase/client';
 
 const FREE_LIMIT = 3;
 

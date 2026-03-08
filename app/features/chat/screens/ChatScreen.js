@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Keyboard
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../../core/theme/colors';
 import { getMessages, sendMessage, subscribeToMessages, markAsRead, blockUser, isUserBlocked, unblockUser, uploadChatMedia } from '../services/chatService';
 
 export default function ChatScreen({ route, navigation }) {

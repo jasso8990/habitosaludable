@@ -1,5 +1,5 @@
 // app/services/aiService.js
-import { supabase, SUPABASE_FUNCTIONS_URL } from './supabase';
+import { supabase, SUPABASE_FUNCTIONS_URL } from '../../../core/supabase/client';
 
 const callFunction = async (fnName, body) => {
   const { data: { session } } = await supabase.auth.getSession();

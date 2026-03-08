@@ -2,13 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { supabase } from '../services/supabase';
+import { Colors } from '../../../core/theme/colors';
+import { supabase } from '../../../core/supabase/client';
 import { sendMessageToAssistant } from '../services/aiService';
-import { createHabit, getHabitCount } from '../services/habitService';
-import { scheduleHabitReminder } from '../services/notificationService';
-import { getUserProfile } from '../services/authService';
-import { useTranslation } from '../i18n/useTranslation';
+import { createHabit, getHabitCount } from '../../habits/services/habitService';
+import { scheduleHabitReminder } from '../../../core/notifications/notificationService';
+import { getUserProfile } from '../../auth/services/authService';
+import { useTranslation } from '../../../core/i18n/useTranslation';
 
 export default function AssistantScreen({ navigation }) {
   const { t } = useTranslation();

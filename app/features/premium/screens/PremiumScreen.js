@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../../core/theme/colors';
 
 const FEATURES = [
   { icon: '🤖', title: 'Hábitos ilimitados', desc: 'Sin límite de metas (gratis = 3 máx.)' },

@@ -2,7 +2,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { Colors } from '../../../core/theme/colors';
 
 const EMOJIS = { salud: '💪', espiritual: '🙏', relaciones: '🤝', estudio: '📚', ejercicio: '🏃', otro: '⭐' };
 

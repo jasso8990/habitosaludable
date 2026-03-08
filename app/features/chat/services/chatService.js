@@ -1,5 +1,5 @@
 // app/services/chatService.js
-import { supabase } from './supabase';
+import { supabase } from '../../../core/supabase/client';
 
 export const getOrCreateConversation = async (uid1, uid2) => {
   const { data: existing } = await supabase.from('conversations').select('*')

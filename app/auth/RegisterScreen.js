@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
-import { registerUser } from '../services/authService';
-import { useTranslation } from '../i18n/useTranslation';
+import { Colors } from '../core/theme/colors';
+import { registerUser } from '../features/auth/services/authService';
+import { useTranslation } from '../core/i18n/useTranslation';
 
 export default function RegisterScreen({ navigation }) {
   const { t } = useTranslation();

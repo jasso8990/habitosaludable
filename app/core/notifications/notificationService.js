@@ -2,8 +2,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { supabase } from './supabase';
-import { updatePushToken } from './authService';
+import { supabase } from '../supabase/client';
+import { updatePushToken } from '../../features/auth/services/authService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
