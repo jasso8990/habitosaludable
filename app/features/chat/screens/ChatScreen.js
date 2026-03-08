@@ -6,7 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import { Colors } from '../../../core/theme/colors';
 import { getMessages, sendMessage, subscribeToMessages, markAsRead, blockUser, isUserBlocked, unblockUser, uploadChatMedia } from '../services/chatService';
-import { createReport } from '../../moderation/services/reportService';
+import { REPORT_REASONS, createReport } from '../../moderation/services/reportService';
 
 export default function ChatScreen({ route, navigation }) {
   const { conversationId, otherUser, currentUserId } = route.params;
@@ -37,16 +37,30 @@ export default function ChatScreen({ route, navigation }) {
     if (r.success) { setMsgs(r.messages); markAsRead(conversationId, currentUserId); }
   };
 
-  const reportUser = async () => {
+  const submitUserReport = async (reason) => {
     const r = await createReport({
       reporterId: currentUserId,
       contenidoId: otherUser?.id || conversationId,
       tipo: 'usuario',
       sourceData: otherUser,
-      motivo: 'Reporte desde chat',
+      motivo: reason,
     });
 
+    if (r.duplicate) {
+      Alert.alert('ℹ️ Ya reportado', 'Ya tienes un reporte pendiente para este usuario.');
+      return;
+    }
+
     Alert.alert(r.success ? '✅ Reporte enviado' : 'Error', r.success ? 'Gracias, revisaremos este caso.' : r.error);
+  };
+
+  const reportUser = async () => {
+    Alert.alert('Reportar usuario', 'Selecciona el motivo', [
+      { text: 'Spam', onPress: () => submitUserReport(REPORT_REASONS.SPAM) },
+      { text: 'Abuso', onPress: () => submitUserReport(REPORT_REASONS.ABUSE) },
+      { text: 'Inapropiado', onPress: () => submitUserReport(REPORT_REASONS.INAPPROPRIATE) },
+      { text: 'Cancelar', style: 'cancel' },
+    ]);
   };
 
   const showOptions = () => {

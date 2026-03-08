@@ -1,5 +1,12 @@
 import { supabase } from '../../../core/supabase/client';
 
+export const REPORT_REASONS = {
+  SPAM: 'spam',
+  ABUSE: 'abuso',
+  INAPPROPRIATE: 'inapropiado',
+  OTHER: 'otro',
+};
+
 const buildSnapshot = ({ sourceType, sourceData }) => {
   if (!sourceData || typeof sourceData !== 'object') return null;
 
@@ -22,14 +29,38 @@ const buildSnapshot = ({ sourceType, sourceData }) => {
   return sourceData;
 };
 
-export const createReport = async ({ reporterId, contenidoId, tipo, sourceData, motivo = '' }) => {
+const normalizeReason = (reason) => {
+  const allowed = new Set(Object.values(REPORT_REASONS));
+  const cleaned = String(reason || '').trim().toLowerCase();
+  return allowed.has(cleaned) ? cleaned : REPORT_REASONS.OTHER;
+};
+
+const hasPendingDuplicate = async ({ reporterId, contenidoId, tipo }) => {
+  const { data } = await supabase
+    .from('reportes')
+    .select('id, estado')
+    .eq('reporter_id', reporterId)
+    .eq('contenido_id', contenidoId)
+    .eq('tipo', tipo)
+    .eq('estado', 'pendiente')
+    .maybeSingle();
+
+  return !!data;
+};
+
+export const createReport = async ({ reporterId, contenidoId, tipo, sourceData, motivo = REPORT_REASONS.OTHER }) => {
   try {
+    const duplicate = await hasPendingDuplicate({ reporterId, contenidoId, tipo });
+    if (duplicate) {
+      return { success: false, duplicate: true, error: 'Ya tienes un reporte pendiente para este contenido.' };
+    }
+
     const payload = {
       reporter_id: reporterId,
       contenido_id: contenidoId,
       tipo,
       snapshot_contenido: {
-        motivo: motivo?.trim() || null,
+        motivo: normalizeReason(motivo),
         snapshot: buildSnapshot({ sourceType: tipo, sourceData }),
       },
       estado: 'pendiente',

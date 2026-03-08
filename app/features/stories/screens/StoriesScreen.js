@@ -4,7 +4,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Share, Alert } from
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../core/theme/colors';
 import { supabase } from '../../../core/supabase/client';
-import { createReport } from '../../moderation/services/reportService';
+import { REPORT_REASONS, createReport } from '../../moderation/services/reportService';
 
 export default function StoriesScreen() {
   const [stories, setStories] = useState([]);
@@ -27,25 +27,31 @@ export default function StoriesScreen() {
 
 
 
+  const submitStoryReport = async (story, reason) => {
+    const r = await createReport({
+      reporterId: userId,
+      contenidoId: story.id,
+      tipo: 'historia',
+      sourceData: story,
+      motivo: reason,
+    });
+
+    if (r.duplicate) {
+      Alert.alert('ℹ️ Ya reportado', 'Ya tienes un reporte pendiente para esta historia.');
+      return;
+    }
+
+    Alert.alert(r.success ? '✅ Reporte enviado' : 'Error', r.success ? 'Gracias, revisaremos este contenido.' : r.error);
+  };
+
   const handleReportStory = async (story) => {
     if (!userId) return;
 
-    Alert.alert('Reportar historia', '¿Deseas reportar esta historia para revisión del equipo?', [
+    Alert.alert('Reportar historia', 'Selecciona el motivo', [
+      { text: 'Spam', onPress: () => submitStoryReport(story, REPORT_REASONS.SPAM) },
+      { text: 'Abuso', onPress: () => submitStoryReport(story, REPORT_REASONS.ABUSE) },
+      { text: 'Inapropiado', onPress: () => submitStoryReport(story, REPORT_REASONS.INAPPROPRIATE) },
       { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Reportar',
-        style: 'destructive',
-        onPress: async () => {
-          const r = await createReport({
-            reporterId: userId,
-            contenidoId: story.id,
-            tipo: 'historia',
-            sourceData: story,
-            motivo: 'Reporte desde historias',
-          });
-          Alert.alert(r.success ? '✅ Reporte enviado' : 'Error', r.success ? 'Gracias, revisaremos este contenido.' : r.error);
-        },
-      },
     ]);
   };
 
