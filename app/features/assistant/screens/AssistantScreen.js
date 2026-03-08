@@ -43,10 +43,14 @@ export default function AssistantScreen({ navigation }) {
     const r = await sendMessageToAssistant(history, profile);
     setLoading(false);
 
+    if (!r.success) {
+      Alert.alert('Asistente IA', 'Hubo un problema al generar respuesta. Te mostramos un mensaje de respaldo.');
+    }
+
     const botMsg = { id: Date.now().toString() + 'b', role: 'assistant', content: r.message, habitPlan: r.habitPlan };
     setMessages(prev => [...prev, botMsg]);
 
-    if (r.habitPlan) {
+    if (r.habitPlan?.title) {
       setTimeout(() => {
         Alert.alert('🌱 Plan creado', `¿Crear el hábito "${r.habitPlan.title}"?`, [
           { text: t('common.cancel'), style: 'cancel' },
