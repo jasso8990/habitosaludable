@@ -2,6 +2,45 @@
 import { supabase } from '../../../core/supabase/client';
 import { bootstrapUserE2EE } from '../../../core/security/e2eeBootstrap';
 
+const normalizeProfile = ({ usersRow, legacyRow, authDataRow, authUser }) => {
+  const fullName = legacyRow?.full_name || usersRow?.nombre || authUser?.user_metadata?.full_name || null;
+  const gender = legacyRow?.gender || usersRow?.sexo || authUser?.user_metadata?.gender || null;
+  const birthDate = legacyRow?.birth_date || usersRow?.fecha_nacimiento || authUser?.user_metadata?.birth_date || null;
+
+  const isBlocked = legacyRow?.is_blocked ?? (usersRow?.estado === 'bloqueado');
+  const isPremium = legacyRow?.is_premium ?? usersRow?.is_premium ?? false;
+
+  return {
+    id: legacyRow?.id || usersRow?.id || authUser?.id,
+    full_name: fullName,
+    gender,
+    birth_date: birthDate,
+    is_blocked: !!isBlocked,
+    is_premium: !!isPremium,
+    push_token: legacyRow?.push_token || usersRow?.push_token || null,
+    email: authDataRow?.email || authUser?.email || null,
+    phone: authDataRow?.telefono || legacyRow?.phone || null,
+    block_reason: legacyRow?.block_reason || usersRow?.block_reason || null,
+    estado: usersRow?.estado || (isBlocked ? 'bloqueado' : 'activo'),
+  };
+};
+
+const loadUnifiedProfile = async (userId) => {
+  const [usersRes, legacyRes, authDataRes, authRes] = await Promise.all([
+    supabase.from('users').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('user_profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase.from('auth_data').select('email, telefono').eq('user_id', userId).maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
+
+  return normalizeProfile({
+    usersRow: usersRes.data,
+    legacyRow: legacyRes.data,
+    authDataRow: authDataRes.data,
+    authUser: authRes?.data?.user,
+  });
+};
+
 export const registerUser = async ({ email, password, fullName, phone, birthDate, gender }) => {
   try {
     const { data, error } = await supabase.auth.signUp({
@@ -28,16 +67,16 @@ export const loginUser = async ({ email, password }) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase().trim(), password });
     if (error) throw error;
 
-    // Verificar si está bloqueado
-    const { data: profile } = await supabase
-      .from('user_profiles').select('is_blocked').eq('id', data.user.id).single();
+    const profile = await loadUnifiedProfile(data.user.id);
     if (profile?.is_blocked) {
       await supabase.auth.signOut();
       throw new Error('Tu cuenta ha sido suspendida. Contacta al administrador.');
     }
 
-    // Actualizar last_active
-    await supabase.from('user_profiles').update({ last_active: new Date().toISOString() }).eq('id', data.user.id);
+    await Promise.all([
+      supabase.from('user_profiles').update({ last_active: new Date().toISOString() }).eq('id', data.user.id),
+      supabase.from('users').update({ updated_at: new Date().toISOString() }).eq('id', data.user.id),
+    ]);
 
     try {
       await bootstrapUserE2EE(data.user.id);
@@ -63,14 +102,16 @@ export const resetPassword = async (email) => {
 
 export const getUserProfile = async (userId) => {
   try {
-    const { data, error } = await supabase.from('user_profiles').select('*').eq('id', userId).single();
-    if (error) throw error;
-    return { success: true, profile: data };
+    const profile = await loadUnifiedProfile(userId);
+    return { success: true, profile };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
 export const updatePushToken = async (userId, token) => {
-  await supabase.from('user_profiles').update({ push_token: token }).eq('id', userId);
+  await Promise.all([
+    supabase.from('user_profiles').update({ push_token: token }).eq('id', userId),
+    supabase.from('users').update({ push_token: token }).eq('id', userId),
+  ]);
 };

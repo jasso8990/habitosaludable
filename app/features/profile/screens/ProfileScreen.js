@@ -4,7 +4,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../core/theme/colors';
 import { supabase } from '../../../core/supabase/client';
-import { logoutUser } from '../../auth/services/authService';
+import { getUserProfile, logoutUser } from '../../auth/services/authService';
 import { setLanguage, useTranslation } from '../../../core/i18n/useTranslation';
 import { getUserLevel } from '../../levels/services/levelService';
 
@@ -18,7 +18,7 @@ export default function ProfileScreen({ navigation }) {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: p } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();
+      const { profile: p } = await getUserProfile(user.id).then(r => r.success ? r : { profile: null });
       setProfile(p);
       const [{ count: h }, { count: c }] = await Promise.all([
         supabase.from('habits').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_active', true),
@@ -61,7 +61,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.email}>{profile?.email}</Text>
         <View style={styles.badges}>
           {profile?.is_premium && <View style={styles.premBadge}><Text style={styles.premTxt}>⭐ Premium</Text></View>}
-          <View style={styles.ageBadge}><Text style={styles.ageTxt}>{calcAge(profile?.birth_date)} años · {profile?.gender === 'male' ? '👨' : '👩'}</Text></View>
+          <View style={styles.ageBadge}><Text style={styles.ageTxt}>{calcAge(profile?.birth_date)} años · {profile?.gender === 'male' ? '👨' : profile?.gender === 'female' ? '👩' : '🧑'}</Text></View>
         </View>
       </View>
 
