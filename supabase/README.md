@@ -25,3 +25,5 @@ Este directorio contiene la base inicial del backend para el MVP con enfoque pri
 
 ## Nota
 Este baseline se debe adaptar con migraciones incrementales cuando se integre completamente con las tablas actuales (`user_profiles`, `habits`, etc.).
+
+- `20260308_010_devotional_notes_e2ee_rls.sql`: crea `devotional_notes` (si no existe), índice único `(user_id, devotional_id)`, políticas RLS owner-only y trigger `updated_at`.

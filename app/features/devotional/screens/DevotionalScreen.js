@@ -72,7 +72,7 @@ export default function DevotionalScreen() {
       return;
     }
 
-    const { error } = await supabase.from('devotional_notes').upsert({ user_id: userId, devotional_id: dev.id, note: noteToStore });
+    const { error } = await supabase.from('devotional_notes').upsert({ user_id: userId, devotional_id: dev.id, note: noteToStore }, { onConflict: 'user_id,devotional_id' });
     if (error) {
       Alert.alert('Error', 'No se pudo guardar tu nota. Intenta nuevamente.');
       return;
