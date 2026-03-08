@@ -8,3 +8,5 @@ Las notas personales (`devotional_notes.note`) soportan cifrado end-to-end incre
 - Si una nota cifrada no puede descifrarse en el dispositivo actual (por ejemplo, falta llave privada), se muestra una advertencia sin exponer contenido.
 
 - Requiere sesión activa para cifrar/guardar en Supabase; si no hay sesión, la UI informa al usuario.
+
+- Si falta la llave pública en `user_keyring`, el cliente intenta re-bootstrap (`bootstrapUserE2EE`) antes de fallar.
