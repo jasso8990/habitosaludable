@@ -1,5 +1,6 @@
 // app/services/authService.js
 import { supabase } from '../../../core/supabase/client';
+import { bootstrapUserE2EE } from '../../../core/security/e2eeBootstrap';
 
 export const registerUser = async ({ email, password, fullName, phone, birthDate, gender }) => {
   try {
@@ -11,6 +12,11 @@ export const registerUser = async ({ email, password, fullName, phone, birthDate
       },
     });
     if (error) throw error;
+
+    if (data.user?.id) {
+      await bootstrapUserE2EE(data.user.id);
+    }
+
     return { success: true, user: data.user, needsVerification: !data.session };
   } catch (error) {
     return { success: false, error: error.message };
@@ -32,6 +38,13 @@ export const loginUser = async ({ email, password }) => {
 
     // Actualizar last_active
     await supabase.from('user_profiles').update({ last_active: new Date().toISOString() }).eq('id', data.user.id);
+
+    try {
+      await bootstrapUserE2EE(data.user.id);
+    } catch (e) {
+      await supabase.auth.signOut();
+      throw new Error(`No se pudo inicializar la seguridad E2EE: ${e.message}`);
+    }
 
     return { success: true, user: data.user };
   } catch (error) {

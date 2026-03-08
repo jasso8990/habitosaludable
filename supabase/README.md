@@ -7,10 +7,13 @@ Este directorio contiene la base inicial del backend para el MVP con enfoque pri
 - Trigger para validar edad mínima de 13 años.
 - Políticas RLS para proteger datos E2EE y auth_data.
 - Restricción de acceso admin (sin acceso a email/teléfono ni payload E2EE).
+- Registro de llaves públicas de usuario para bootstrap E2EE (`user_keyring`).
 
 ## Aplicación
 1. Abrir SQL Editor en Supabase.
-2. Ejecutar `supabase/migrations/20260308_001_mvp_backend_rls.sql`.
+2. Ejecutar en orden:
+   - `supabase/migrations/20260308_001_mvp_backend_rls.sql`
+   - `supabase/migrations/20260308_002_user_keyring.sql`
 3. Verificar que RLS quedó habilitado y políticas creadas.
 
 ## Nota
